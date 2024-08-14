@@ -1,12 +1,25 @@
 
+let boardState = [[1,2,3],[4, null, 5]];
+
+
 export default function SlidingPuzzle() {
+
+    const renderCell = (row: any, col: any) => {
+        if (boardState[row][col] == null) {
+            return <div> ( ) </div>;
+        }
+        return <div>{boardState[row][col]}</div>;
+    }
+
+
     return (
-        <div>
-            <div>1</div>
-            <div>2</div>
-            <div>3</div>
-            <div>4</div>
-            <div>5</div>
+        <div className="grid grid-cols-3">
+            <div>{ renderCell(0, 0) }</div>
+            <div>{ renderCell(0, 1) }</div>
+            <div>{ renderCell(0, 2) }</div>
+            <div>{ renderCell(1, 0) }</div>
+            <div>{ renderCell(1, 1) }</div>
+            <div>{ renderCell(1, 2) }</div>
         </div>
     );
   }

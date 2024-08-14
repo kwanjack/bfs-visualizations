@@ -11,9 +11,13 @@ export default function FloodFillComponent() {
   const [floodFillState, setFloodFillState] = useState(null);
 
   const handleInitialize = () => {
-    const initialState = initializeFloodFill(image, sr, sc, 2);
-    if (initialState) {
-      setFloodFillState(initialState);
+    if (sr >= 0 && sr < rows && sc >= 0 && sc < cols) {
+      const initialState = initializeFloodFill(image, sr, sc, 2);
+      if (initialState) {
+        setFloodFillState(initialState);
+      }
+    } else {
+      alert("Starting coordinates are out of bounds.");
     }
   };
 
@@ -35,71 +39,131 @@ export default function FloodFillComponent() {
     setFloodFillState(null); // Reset any ongoing flood fill
   };
 
+  const handleRowsChange = (e) => {
+    const newRows = parseInt(e.target.value, 10);
+    if (newRows >= 3 && newRows <= 10) {
+      setRows(newRows);
+      setImage(generateRandomGrid(newRows, cols, numLandTiles));
+      if (sr >= newRows) setSr(newRows - 1);
+    }
+  };
+
+  const handleColsChange = (e) => {
+    const newCols = parseInt(e.target.value, 10);
+    if (newCols >= 3 && newCols <= 10) {
+      setCols(newCols);
+      setImage(generateRandomGrid(rows, newCols, numLandTiles));
+      if (sc >= newCols) setSc(newCols - 1);
+    }
+  };
+
+  const handleNumLandTilesChange = (e) => {
+    const newLandTiles = parseInt(e.target.value, 10);
+    if (newLandTiles >= 0 && newLandTiles <= (rows * cols - 1)) {
+      setNumLandTiles(newLandTiles);
+      setImage(generateRandomGrid(rows, cols, newLandTiles));
+    }
+  };
+
+  const handleStartRowChange = (e) => {
+    const newStartRow = parseInt(e.target.value, 10);
+    if (newStartRow >= 0 && newStartRow < rows) {
+      setSr(newStartRow);
+    }
+  };
+
+  const handleStartColChange = (e) => {
+    const newStartCol = parseInt(e.target.value, 10);
+    if (newStartCol >= 0 && newStartCol < cols) {
+      setSc(newStartCol);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center p-4 space-y-4">
       <h1 className="text-2xl font-bold mb-4">Flood Fill Visualization</h1>
 
-      <div className="space-y-2">
-        <label className="flex flex-col">
-          <span>Rows:</span>
+      {/* Environmental inputs */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="flex flex-col items-center">
+          <label className="mb-1 text-sm font-medium">Rows:</label>
           <input
             type="number"
             value={rows}
-            onChange={(e) => setRows(parseInt(e.target.value, 10))}
-            className="border border-gray-300 p-2 rounded"
+            onChange={handleRowsChange}
+            className="text-black border border-gray-300 p-2 rounded w-24"
+            min="3"
+            max="10"
           />
-        </label>
-        <label className="flex flex-col">
-          <span>Columns:</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <label className="mb-1 text-sm font-medium">Columns:</label>
           <input
             type="number"
             value={cols}
-            onChange={(e) => setCols(parseInt(e.target.value, 10))}
-            className="border border-gray-300 p-2 rounded"
+            onChange={handleColsChange}
+            className="text-black border border-gray-300 p-2 rounded w-24"
+            min="3"
+            max="10"
           />
-        </label>
-        <label className="flex flex-col">
-          <span>Number of Land Tiles:</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <label className="mb-1 text-sm font-medium">Number of Land Tiles:</label>
           <input
             type="number"
             value={numLandTiles}
-            onChange={(e) => setNumLandTiles(parseInt(e.target.value, 10))}
-            className="border border-gray-300 p-2 rounded"
+            onChange={handleNumLandTilesChange}
+            className="text-black border border-gray-300 p-2 rounded w-24"
+            min="0"
+            max={rows * cols - 1}
           />
-        </label>
-        <label className="flex flex-col">
-          <span>Start Row:</span>
-          <input
-            type="number"
-            value={sr}
-            onChange={(e) => setSr(parseInt(e.target.value, 10))}
-            className="border border-gray-300 p-2 rounded"
-          />
-        </label>
-        <label className="flex flex-col">
-          <span>Start Column:</span>
-          <input
-            type="number"
-            value={sc}
-            onChange={(e) => setSc(parseInt(e.target.value, 10))}
-            className="border border-gray-300 p-2 rounded"
-          />
-        </label>
+        </div>
+      </div>
 
+      {/* Start row and column */}
+      <div className="flex flex-col items-center mb-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col items-center">
+            <label className="mb-1 text-sm font-medium">Start Row:</label>
+            <input
+              type="number"
+              value={sr}
+              onChange={handleStartRowChange}
+              className="text-black border border-gray-300 p-2 rounded w-24"
+              min="0"
+              max={rows - 1}
+            />
+          </div>
+          <div className="flex flex-col items-center">
+            <label className="mb-1 text-sm font-medium">Start Column:</label>
+            <input
+              type="number"
+              value={sc}
+              onChange={handleStartColChange}
+              className="text-black border border-gray-300 p-2 rounded w-24"
+              min="0"
+              max={cols - 1}
+            />
+          </div>
+        </div>
+
+      {/* Grid code */}
       <div className="flex flex-col items-center mt-4">
         {image.map((row, rowIndex) => (
           <div key={rowIndex} className="flex">
             {row.map((pixel, colIndex) => (
               <div
                 key={colIndex}
-                className={`w-20 h-20 border border-gray-400 m-0.5 ${pixel === 1 ? 'bg-white' : pixel === 0 ? 'bg-black' : 'bg-blue-500'}`}
+                className={`w-10 h-10 border border-gray-400 m-0.5 ${pixel === 1 ? 'bg-white' : pixel === 0 ? 'bg-black' : 'bg-blue-500'}`}
               />
             ))}
           </div>
         ))}
       </div>
+    </div>
 
-      <div className="flex space-x-2">
+    {/* Buttons for starting code */}
+    <div className="grid grid-cols-3 gap-4 mt-4">
           <button
             onClick={handleRandomize}
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -122,7 +186,6 @@ export default function FloodFillComponent() {
           </button>
         </div>
       </div>
-    </div>
   );
 }
 

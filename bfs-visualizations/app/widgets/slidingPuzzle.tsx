@@ -46,7 +46,7 @@ export default function SlidingPuzzle() {
             {console.log("secondlast: " + secondLastClicked)}    
  
 
-            <div onClick={() => onCellClicked(0, 0)}>{ renderCell(0, 0) }</div>
+            <div className="bg-slate-800" onClick={() => onCellClicked(0, 0)}>{ renderCell(0, 0) }</div>
             <div onClick={() => onCellClicked(0, 1)}>{ renderCell(0, 1) }</div>
             <div onClick={() => onCellClicked(0, 2)}>{ renderCell(0, 2) }</div>
             <div onClick={() => onCellClicked(1, 0)}>{ renderCell(1, 0) }</div>

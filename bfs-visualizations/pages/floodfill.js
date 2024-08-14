@@ -1,25 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import "../app/globals.css"; // Ensure TailwindCSS is imported
 
-export default function FloodFillComponent() {
+export default function FloodFill() {
   const [rows, setRows] = useState(5);
   const [cols, setCols] = useState(5);
-  const [numLandTiles, setNumLandTiles] = useState(3);
+  const [numMtnTiles, setNumMtnTiles] = useState(5);
   const [sr, setSr] = useState(0);
   const [sc, setSc] = useState(0);
-  const [image, setImage] = useState(generateRandomGrid(rows, cols, numLandTiles));
+  const [selectedCell, setSelectedCell] = useState({ row: null, col: null });
+  const [image, setImage] = useState([]);
   const [floodFillState, setFloodFillState] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    setImage(generateRandomGrid(rows, cols, numMtnTiles));
+  }, [rows, cols, numMtnTiles]);
 
   const handleInitialize = () => {
     if (sr >= 0 && sr < rows && sc >= 0 && sc < cols) {
       const initialState = initializeFloodFill(image, sr, sc, 2);
       if (initialState) {
         setFloodFillState(initialState);
+        setIsInitialized(true); // Show "Next Step" button and hide "Initialize Flood Fill" button
       }
     } else {
       alert("Starting coordinates are out of bounds.");
     }
   };
+
 
   const handleStep = () => {
     if (floodFillState) {
@@ -28,173 +37,190 @@ export default function FloodFillComponent() {
         setFloodFillState(nextState);
         setImage([...nextState.image]);
       } else {
+        setIsComplete(true);
         alert("Flood fill complete");
       }
     }
   };
 
+  const resetTiles = (r, c, mtns) => {
+    setImage(generateRandomGrid(r, c, mtns));
+    setFloodFillState(null); // Reset flood fill state
+    setSelectedCell({ row: null, col: null }); // Reset selected cell
+    setIsInitialized(false); // Reset button visibility on randomize
+    setIsComplete(false); // Ensure "Next Step" is re-enabled
+  }
+
   const handleRandomize = () => {
-    const newGrid = generateRandomGrid(rows, cols, numLandTiles);
-    setImage(newGrid);
-    setFloodFillState(null); // Reset any ongoing flood fill
+    resetTiles(rows, cols, numMtnTiles);
   };
 
-  const handleRowsChange = (e) => {
-    const newRows = parseInt(e.target.value, 10);
-    if (newRows >= 3 && newRows <= 10) {
+  const incrementRows = () => {
+    if (rows < 10) {
+      const newRows = rows + 1;
       setRows(newRows);
-      setImage(generateRandomGrid(newRows, cols, numLandTiles));
+      resetTiles(newRows, cols, numMtnTiles);
       if (sr >= newRows) setSr(newRows - 1);
     }
   };
 
-  const handleColsChange = (e) => {
-    const newCols = parseInt(e.target.value, 10);
-    if (newCols >= 3 && newCols <= 10) {
+  const decrementRows = () => {
+    if (rows > 3) {
+      const newRows = rows - 1;
+      setRows(newRows);
+      resetTiles(newRows, cols, numMtnTiles);
+      if (sr >= newRows) setSr(newRows - 1);
+    }
+  };
+
+  const incrementCols = () => {
+    if (cols < 10) {
+      const newCols = cols + 1;
       setCols(newCols);
-      setImage(generateRandomGrid(rows, newCols, numLandTiles));
+      resetTiles(rows, newCols, numMtnTiles);
       if (sc >= newCols) setSc(newCols - 1);
     }
   };
 
-  const handleNumLandTilesChange = (e) => {
-    const newLandTiles = parseInt(e.target.value, 10);
-    if (newLandTiles >= 0 && newLandTiles <= (rows * cols - 1)) {
-      setNumLandTiles(newLandTiles);
-      setImage(generateRandomGrid(rows, cols, newLandTiles));
+  const decrementCols = () => {
+    if (cols > 3) {
+      const newCols = cols - 1;
+      setCols(newCols);
+      resetTiles(rows, newCols, numMtnTiles);
+      if (sc >= newCols) setSc(newCols - 1);
     }
   };
 
-  const handleStartRowChange = (e) => {
-    const newStartRow = parseInt(e.target.value, 10);
-    if (newStartRow >= 0 && newStartRow < rows) {
-      setSr(newStartRow);
+  const incrementMtnTiles = () => {
+    if (numMtnTiles < rows * cols - 1) {
+      const newMtnTiles = numMtnTiles + 1;
+      setNumMtnTiles(newMtnTiles);
+      resetTiles(rows, cols, newMtnTiles);
     }
   };
 
-  const handleStartColChange = (e) => {
-    const newStartCol = parseInt(e.target.value, 10);
-    if (newStartCol >= 0 && newStartCol < cols) {
-      setSc(newStartCol);
+  const decrementMtnTiles = () => {
+    if (numMtnTiles > 0) {
+      const newMtnTiles = numMtnTiles - 1;
+      setNumMtnTiles(newMtnTiles);
+      resetTiles(rows, cols, newMtnTiles);
     }
   };
+
+  const handleCellClick = (rowIndex, colIndex) => {
+    console.log(image)
+    console.log(image[rowIndex][colIndex])
+    if (image[rowIndex][colIndex] === 0) {
+      setSr(rowIndex);
+      setSc(colIndex);
+      setSelectedCell({ row: rowIndex, col: colIndex });
+    }
+  };
+
+  console.log(selectedCell);
 
   return (
     <div className="flex flex-col items-center p-4 space-y-4">
       <h1 className="text-2xl font-bold mb-4">Flood Fill Visualization</h1>
 
-      {/* Environmental inputs */}
+      {/* Grid configuration controls */}
       <div className="grid grid-cols-3 gap-4 mb-4">
+        {/* Rows control */}
         <div className="flex flex-col items-center">
           <label className="mb-1 text-sm font-medium">Rows:</label>
-          <input
-            type="number"
-            value={rows}
-            onChange={handleRowsChange}
-            className="text-black border border-gray-300 p-2 rounded w-24"
-            min="3"
-            max="10"
-          />
+          <div className="flex items-center">
+            <button onClick={decrementRows} className="bg-gray-300 text-black px-2 py-1 rounded-s hover:bg-gray-400">-</button>
+            <span className="bg-gray-300 px-4 py-1 text-black">{rows}</span>
+            <button onClick={incrementRows} className="bg-gray-300 text-black px-2 py-1 rounded-e hover:bg-gray-400">+</button>
+          </div>
         </div>
+        {/* Columns control */}
         <div className="flex flex-col items-center">
           <label className="mb-1 text-sm font-medium">Columns:</label>
-          <input
-            type="number"
-            value={cols}
-            onChange={handleColsChange}
-            className="text-black border border-gray-300 p-2 rounded w-24"
-            min="3"
-            max="10"
-          />
+          <div className="flex items-center">
+            <button onClick={decrementCols} className="bg-gray-300 text-black px-2 py-1 rounded-s hover:bg-gray-400">-</button>
+            <span className="bg-gray-300 px-4 py-1 text-black">{cols}</span>
+            <button onClick={incrementCols} className="bg-gray-300 text-black px-2 py-1 rounded-e hover:bg-gray-400">+</button>
+          </div>
         </div>
+        {/* Number of mountain tiles control */}
         <div className="flex flex-col items-center">
-          <label className="mb-1 text-sm font-medium">Number of Land Tiles:</label>
-          <input
-            type="number"
-            value={numLandTiles}
-            onChange={handleNumLandTilesChange}
-            className="text-black border border-gray-300 p-2 rounded w-24"
-            min="0"
-            max={rows * cols - 1}
-          />
+          <label className="mb-1 text-sm font-medium">Number of Mountain Tiles:</label>
+          <div className="flex items-center">
+            <button onClick={decrementMtnTiles} className="bg-gray-300 text-black px-2 py-1 rounded-s hover:bg-gray-400">-</button>
+            <span className="bg-gray-300 px-4 py-1 text-black">{numMtnTiles}</span>
+            <button onClick={incrementMtnTiles} className="bg-gray-300 text-black px-2 py-1 rounded-e hover:bg-gray-400">+</button>
+          </div>
         </div>
       </div>
 
-      {/* Start row and column */}
-      <div className="flex flex-col items-center mb-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col items-center">
-            <label className="mb-1 text-sm font-medium">Start Row:</label>
-            <input
-              type="number"
-              value={sr}
-              onChange={handleStartRowChange}
-              className="text-black border border-gray-300 p-2 rounded w-24"
-              min="0"
-              max={rows - 1}
-            />
-          </div>
-          <div className="flex flex-col items-center">
-            <label className="mb-1 text-sm font-medium">Start Column:</label>
-            <input
-              type="number"
-              value={sc}
-              onChange={handleStartColChange}
-              className="text-black border border-gray-300 p-2 rounded w-24"
-              min="0"
-              max={cols - 1}
-            />
-          </div>
-        </div>
-
-      {/* Grid code */}
+      {/* Grid visualization */}
       <div className="flex flex-col items-center mt-4">
         {image.map((row, rowIndex) => (
           <div key={rowIndex} className="flex">
             {row.map((pixel, colIndex) => (
               <div
                 key={colIndex}
-                className={`w-10 h-10 border border-gray-400 m-0.5 ${pixel === 1 ? 'bg-white' : pixel === 0 ? 'bg-black' : 'bg-blue-500'}`}
+                onClick={() => handleCellClick(rowIndex, colIndex)}
+                className={`w-14 h-14 border border-gray-400 hover:border-white hover:border-2 m-0.5 ${pixel === 1 ? 'bg-white' : pixel === 0 ? 'bg-black' : 'bg-blue-500'} ${selectedCell.row === rowIndex && selectedCell.col === colIndex ? 'border-4 border-yellow-500 hover:border-4 hover:border-yellow-500' : ''}`}
               />
             ))}
           </div>
         ))}
       </div>
-    </div>
 
-    {/* Buttons for starting code */}
-    <div className="grid grid-cols-3 gap-4 mt-4">
-          <button
-            onClick={handleRandomize}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Randomize Grid
-          </button>
+      {/* Starting coordinates display */}
+      <div className="flex flex-col items-center mb-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col items-center">
+            <label className="mb-1 text-sm font-medium">Start Row:</label>
+            <span className="text-black bg-white border border-gray-300 p-2 rounded w-24">{sr}</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <label className="mb-1 text-sm font-medium">Start Column:</label>
+            <span className="text-black bg-white border border-gray-300 p-2 rounded w-24">{sc}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Control buttons */}
+      <div className="grid grid-cols-2 gap-4 mt-4">
+        <button
+          onClick={handleRandomize}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Randomize Grid
+        </button>
+
+        {!isInitialized && (
           <button
             onClick={handleInitialize}
-            disabled={floodFillState !== null}
+            disabled={isInitialized || selectedCell.row === null || selectedCell.col === null}
             className={`px-4 py-2 rounded ${floodFillState !== null ? 'bg-gray-500 text-white cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}
           >
             Initialize Flood Fill
           </button>
+        )}
+        {isInitialized && (
           <button
             onClick={handleStep}
-            disabled={floodFillState === null}
+            disabled={isComplete}
             className={`px-4 py-2 rounded ${floodFillState === null ? 'bg-gray-500 text-white cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600'}`}
           >
             Next Step
           </button>
-        </div>
+        )}
       </div>
+    </div>
   );
 }
 
-// Function to generate a random grid with a given number of land tiles
-function generateRandomGrid(rows, cols, numLandTiles) {
+// Function to generate a random grid with a given number of mountain tiles
+function generateRandomGrid(rows, cols, numMtnTiles) {
   const grid = Array.from({ length: rows }, () => Array(cols).fill(0));
   let placedTiles = 0;
 
-  while (placedTiles < numLandTiles) {
+  while (placedTiles < numMtnTiles) {
     const x = Math.floor(Math.random() * rows);
     const y = Math.floor(Math.random() * cols);
 

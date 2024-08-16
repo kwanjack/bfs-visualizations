@@ -216,7 +216,7 @@ export default function FloodFill() {
 
   return (
     <div className="flex flex-col items-center p-4 space-y-4">
-      <h1 className="text-4xl font-extrabold mb-4">
+      <h1 className="text-4xl font-extrabold mb-1">
         Flood Fill 
         <span className="mx-2">{AlgorithmSelector()}</span>
         Visualizer
@@ -270,19 +270,19 @@ export default function FloodFill() {
               {row.map((pixel, colIndex) => {
                 const index = rowIndex * cols + colIndex;
                 return (
-                  <animated.div 
+                  <div 
                     key={index}
                     onClick={() => handleTileClick(rowIndex, colIndex)}
-                    className={`w-12 h-12 border border-gray-400 m-1 transform transition-transform duration-300 hover:scale-110 ${
-                      pixel >= 2 ? 'bg-gray-300' : 'bg-black'
-                    } ${(!isInitialized && selectedTile.row === rowIndex && selectedTile.col === colIndex) || 
+                    className={`w-12 h-12 border border-gray-400 m-1 transform transition-transform duration-300 hover:scale-110 rounded
+                      ${ pixel >= 2 ? 'bg-gray-300' : 'bg-black'} 
+                      ${(!isInitialized && selectedTile.row === rowIndex && selectedTile.col === colIndex) || 
                           (isInitialized && rowIndex === cr && colIndex === cc) ? 'border-4 border-yellow-500' : ''}`}
                   >
                     <animated.div 
                       style={{ ...floodSprings[index] }}
                       className={`absolute bottom-0 left-0 w-full ${ algorithm === 'BFS' ? 'bg-blue-400' : 'bg-purple-400'}`}
                     />
-                  </animated.div>
+                  </div>
                 );
               })}
             </div>
@@ -410,7 +410,7 @@ function floodFillStepBFS(state) {
 }
 
 function floodFillStepDFS(state) {
-  const { image, stack, directions, floodStates, mtnStates, m, n } = state;
+  const { image, stack, directions, floodStates, m, n } = state;
   const [floodStart, floodEnd] = floodStates;
 
   if (stack.length === 0) {

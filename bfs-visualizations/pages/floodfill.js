@@ -229,7 +229,7 @@ export default function FloodFill() {
     const displayItems = algorithm === 'DFS' ? [...orderStructure].reverse() : orderStructure;
   
     const renderItem = (tile, index) => {
-      // Calculate opacity: 100% for first three items, decreasing by 15% for each subsequent item
+      // Calculate opacity: 100% for first three items, decreasing by 6% for each subsequent item
       const opacity = Math.max(0.1, 1 - (index * 0.06));
       return (
         <li key={index} style={{ opacity }}>

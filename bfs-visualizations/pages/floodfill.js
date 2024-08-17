@@ -26,19 +26,10 @@ export default function FloodFill() {
     if (sr >= 0 && sr < rows && sc >= 0 && sc < cols) {
       const initialState = initializeFloodFill(image, sr, sc, [0, 1]);
       if (initialState) {
-        setCurrentRow(sr);
-        setCurrentCol(sc);
         setFloodFillState(initialState);
         setIsInitialized(true);
         const newOrderStructure = algorithm === 'BFS' ? [...initialState.queue] : [...initialState.stack];
         setOrderStructure(newOrderStructure);
-        
-        // Set the next tile to be processed
-        if (newOrderStructure.length > 0) {
-          const [nextRow, nextCol] = algorithm === 'BFS' ? newOrderStructure[0] : newOrderStructure[newOrderStructure.length - 1];
-          setCurrentRow(nextRow);
-          setCurrentCol(nextCol);
-        }
       }
     } else {
       alert("Starting coordinates are out of bounds.");
@@ -79,9 +70,11 @@ export default function FloodFill() {
     setIsInitialized(false); // Reset button visibility on reset
     setIsComplete(false); // Ensure "Next Step" is re-enabled
     setOrderStructure([]); // Clear the queue/stack
+    setCurrentRow(-1);
+    setCurrentCol(-1);
   }
 
-  const handleDefaultReset = () => {
+  const handleReset = () => {
     resetTiles(rows, cols, numMtnTiles);
   };
 
@@ -241,13 +234,13 @@ export default function FloodFill() {
     return (
       <div>
         <div className="pb-6">
-          <h2 className="text-3xl font-extrabold mb-2">Current:</h2>
+          <h2 className="text-3xl font-extrabold mb-2">{algorithm === 'BFS' ? 'Shifted' : 'Popped'}:</h2>
           <p className="text-2xl text-yellow-400">
             { cr < 0 || cc < 0 ? 'None.' : `(${cr}, ${cc})` }
           </p>
         </div>
         <h2 className="text-3xl font-extrabold mb-2">
-          Next In {algorithm === 'BFS' ? 'Queue:' : 'Stack:'}
+          {algorithm === 'BFS' ? 'Queue' : 'Stack'}:
         </h2>
         {orderStructure.length > 0 ? (
           <ul className='text-m'>
@@ -269,15 +262,8 @@ export default function FloodFill() {
     const isBFS = algorithm === "BFS";
   
     const resetButtonClass = "bg-transparent text-white px-4 py-2 w-36 rounded border-2 border-gray-500 hover:border-white";
-    
-    const startButtonClass = `px-4 py-2 w-36 rounded ${
-      isStartDisabled
-        ? 'bg-gray-500 text-white cursor-not-allowed opacity-50'
-        : 'bg-transparent text-white border-2 border-yellow-600 hover:border-yellow-500'
-    }`;
-  
-    const stepButtonClass = `px-4 py-2 w-36 rounded ${
-      isStepDisabled
+    const actionButtonClass = (disabled) => `px-4 py-2 w-36 rounded ${
+      disabled
         ? 'bg-gray-500 text-white cursor-not-allowed opacity-50'
         : isBFS
           ? 'bg-transparent text-white border-2 border-blue-600 hover:border-blue-400'
@@ -287,7 +273,7 @@ export default function FloodFill() {
     return (
       <div className="grid grid-cols-2 gap-4 mt-4">
         <button
-          onClick={handleDefaultReset}
+          onClick={handleReset}
           className={resetButtonClass}
         >
           Reset
@@ -296,7 +282,7 @@ export default function FloodFill() {
           <button
             onClick={handleInitialize}
             disabled={isStartDisabled}
-            className={startButtonClass}
+            className={actionButtonClass(isStartDisabled)}
           >
             Start
           </button>
@@ -304,7 +290,7 @@ export default function FloodFill() {
           <button
             onClick={handleStep}
             disabled={isStepDisabled}
-            className={stepButtonClass}
+            className={actionButtonClass(isStepDisabled)}
           >
             {isBFS ? 'Shift' : 'Pop'}
           </button>
@@ -321,7 +307,7 @@ export default function FloodFill() {
         Visualizer
       </h1>
 
-      <p className="text-2xl font-bold">
+      <p className="text-2xl font-bold text-yellow-500">
             {!isInitialized ? 'Select A Tile To Begin.' : (
               isInitialized && !isComplete ? 'In Progress.' :
               'Complete.'
@@ -344,8 +330,8 @@ export default function FloodFill() {
                     onClick={() => handleTileClick(rowIndex, colIndex)}
                     className={`w-12 h-12 border border-gray-400 m-1 transform transition-transform duration-300 hover:scale-110 rounded
                       ${ pixel >= 2 ? 'bg-gray-300' : 'bg-black'} 
-                      ${(!isInitialized && selectedTile.row === rowIndex && selectedTile.col === colIndex) || 
-                          (isInitialized && rowIndex === cr && colIndex === cc) ? 'border-4 border-yellow-500' : ''}`}
+                      ${(!isInitialized && selectedTile.row === rowIndex && selectedTile.col === colIndex) && 'border-4 border-white'}
+                      ${(isInitialized && rowIndex === cr && colIndex === cc) && 'border-4 border-yellow-500'}`}
                   >
                     <animated.div 
                       style={{ ...floodSprings[index] }}
@@ -390,6 +376,7 @@ function generateRandomGrid(rows, cols, numMtnTiles) {
 
   return grid;
 }
+
 
 // Reuse the flood fill step-by-step functions
 function initializeFloodFill(image, sr, sc, floodStates) {

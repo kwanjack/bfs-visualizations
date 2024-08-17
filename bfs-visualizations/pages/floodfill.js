@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import "../app/globals.css"; // Ensure TailwindCSS is imported
-import { useSpring, useSprings, animated } from '@react-spring/web'
+import { useSpring, useSprings, animated, config } from '@react-spring/web'
 
 export default function FloodFill() {
   const [algorithm, setAlgorithm] = useState('BFS');
@@ -9,8 +9,8 @@ export default function FloodFill() {
   const [numMtnTiles, setNumMtnTiles] = useState(5);
   const [sr, setStartRow] = useState(0);
   const [sc, setStartCol] = useState(0);
-  const [cr, setCurrentRow] = useState(0);
-  const [cc, setCurrentCol] = useState(0);
+  const [cr, setCurrentRow] = useState(-1);
+  const [cc, setCurrentCol] = useState(-1);
   const [selectedTile, setSelectedTile] = useState({ row: null, col: null });
   const [image, setImage] = useState([]);
   const [floodFillState, setFloodFillState] = useState(null);
@@ -45,7 +45,7 @@ export default function FloodFill() {
     }
   };
 
-  const getNextTile = () => {
+  const getCurrentTile = () => {
     if (orderStructure.length === 0) return [-1, -1];
     if (algorithm === 'BFS') return orderStructure[0];
     else return orderStructure[orderStructure.length - 1];
@@ -55,7 +55,7 @@ export default function FloodFill() {
     if (floodFillState) {
 
       // Update current tile before processing the step
-      const [nextRow, nextCol] = getNextTile();
+      const [nextRow, nextCol] = getCurrentTile();
       setCurrentRow(nextRow);
       setCurrentCol(nextCol);
 
@@ -114,7 +114,7 @@ export default function FloodFill() {
   };
 
   const handleTileClick = (rowIndex, colIndex) => {
-    if (image[rowIndex][colIndex] === 0) {
+    if (!isInitialized && image[rowIndex][colIndex] === 0) {
       setStartRow(rowIndex);
       setStartCol(colIndex);
       setSelectedTile({ row: rowIndex, col: colIndex });
@@ -171,32 +171,79 @@ export default function FloodFill() {
     );
   };
 
+  const gridControlsDisplay = () => {
+    const controlStyles = "flex flex-col items-center pb-10";
+    const labelStyles = "mb-1 text-xl font-extrabold";
+    const inputStyles = "w-64";
+  
+    const controls = [
+      {
+        label: "Rows",
+        value: rows,
+        onChange: handleRowsChange,
+        min: 3,
+        max: 10,
+        accentColor: "accent-purple-300"
+      },
+      {
+        label: "Columns",
+        value: cols,
+        onChange: handleColsChange,
+        min: 3,
+        max: 10,
+        accentColor: "accent-blue-300"
+      },
+      {
+        label: "Mountain Tiles",
+        value: numMtnTiles,
+        onChange: handleMtnTilesChange,
+        min: 0,
+        max: rows * cols - 1,
+        accentColor: "accent-gray-400"
+      }
+    ];
+  
+    return (
+      <div className="flex-col mr-8 inline-block items-left">
+        {controls.map((control, index) => (
+          <div key={index} className={controlStyles}>
+            <label className={labelStyles}>
+              {control.label}: {control.value}
+            </label>
+            <input
+              type="range"
+              min={control.min}
+              max={control.max}
+              value={control.value}
+              onChange={control.onChange}
+              className={`${inputStyles} ${control.accentColor}`}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const queueStackDisplay = () => {
     const maxDisplay = Math.floor(Math.max(5, rows * cols / 6));
     const displayItems = algorithm === 'DFS' ? [...orderStructure].reverse() : orderStructure;
-    
-    const getItemStyle = (index) => {
-      switch(index) {
-        case 0: return 'text-2xl font-extrabold';
-        default: return '';
-      }
-    };
   
-    const renderItem = (tile, index) => (
-      <li key={index} className={getItemStyle(index)}>
-        ({tile[0]}, {tile[1]})
-      </li>
-    );
+    const renderItem = (tile, index) => {
+      // Calculate opacity: 100% for first three items, decreasing by 15% for each subsequent item
+      const opacity = Math.max(0.1, 1 - (index * 0.06));
+      return (
+        <li key={index} style={{ opacity }}>
+          ({tile[0]}, {tile[1]})
+        </li>
+      );
+    };
   
     return (
       <div>
         <div className="pb-6">
-          <h2 className="text-3xl font-extrabold mb-2">Status:</h2>
-          <p className="text-2xl">
-            {!isInitialized ? 'Select A Tile To Begin.' : (
-              isInitialized && !isComplete ? 'In Progress.' :
-              'Complete.'
-            )}
+          <h2 className="text-3xl font-extrabold mb-2">Current:</h2>
+          <p className="text-2xl text-yellow-400">
+            { cr < 0 || cc < 0 ? 'None.' : `(${cr}, ${cc})` }
           </p>
         </div>
         <h2 className="text-3xl font-extrabold mb-2">
@@ -205,63 +252,85 @@ export default function FloodFill() {
         {orderStructure.length > 0 ? (
           <ul className='text-m'>
             {displayItems.slice(0, maxDisplay).map(renderItem)}
-            {orderStructure.length > maxDisplay && <li>...</li>}
+            {orderStructure.length > maxDisplay && (
+              <li style={{ opacity: 0.1 }}>...</li>
+            )}
           </ul>
         ) : (
-          <p className='text-2xl'>Empty.</p>
+          <p>None.</p>
+        )}
+      </div>
+    );
+  };
+
+  const buttonGroupDisplay = () => {
+    const isStartDisabled = isInitialized || selectedTile.row === null || selectedTile.col === null;
+    const isStepDisabled = isComplete || floodFillState === null;
+    const isBFS = algorithm === "BFS";
+  
+    const resetButtonClass = "bg-transparent text-white px-4 py-2 w-36 rounded border-2 border-gray-500 hover:border-white";
+    
+    const startButtonClass = `px-4 py-2 w-36 rounded ${
+      isStartDisabled
+        ? 'bg-gray-500 text-white cursor-not-allowed opacity-50'
+        : 'bg-transparent text-white border-2 border-yellow-600 hover:border-yellow-500'
+    }`;
+  
+    const stepButtonClass = `px-4 py-2 w-36 rounded ${
+      isStepDisabled
+        ? 'bg-gray-500 text-white cursor-not-allowed opacity-50'
+        : isBFS
+          ? 'bg-transparent text-white border-2 border-blue-600 hover:border-blue-400'
+          : 'bg-transparent text-white border-2 border-purple-600 hover:border-purple-400'
+    }`;
+  
+    return (
+      <div className="grid grid-cols-2 gap-4 mt-4">
+        <button
+          onClick={handleDefaultReset}
+          className={resetButtonClass}
+        >
+          Reset
+        </button>
+        {!isInitialized ? (
+          <button
+            onClick={handleInitialize}
+            disabled={isStartDisabled}
+            className={startButtonClass}
+          >
+            Start
+          </button>
+        ) : (
+          <button
+            onClick={handleStep}
+            disabled={isStepDisabled}
+            className={stepButtonClass}
+          >
+            {isBFS ? 'Shift' : 'Pop'}
+          </button>
         )}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col items-center p-4 space-y-4">
+    <div className="flex flex-col items-center pt-2 space-y-2">
       <h1 className="text-4xl font-extrabold mb-1">
         Flood Fill 
         <span className="mx-2">{AlgorithmSelector()}</span>
         Visualizer
       </h1>
 
+      <p className="text-2xl font-bold">
+            {!isInitialized ? 'Select A Tile To Begin.' : (
+              isInitialized && !isComplete ? 'In Progress.' :
+              'Complete.'
+            )}
+      </p>
+
       <div className="w-full grid grid-cols-3 gap-4">
         {/* Grid configuration controls */}
-        <div className="flex-col mr-8 inline-block items-left">
-          {/* Rows control */}
-          <div className="flex flex-col items-center pb-10">
-            <label className="mb-1 text-xl font-extrabold">Rows: {rows}</label>
-            <input
-              type="range"
-              min="3"
-              max="10"
-              value={rows}
-              onChange={handleRowsChange}
-              className="w-64 accent-purple-300"
-            />
-          </div>
-          {/* Columns control */}
-          <div className="flex flex-col items-center pb-10">
-            <label className="mb-1 text-xl font-extrabold">Columns: {cols}</label>
-            <input
-              type="range"
-              min="3"
-              max="10"
-              value={cols}
-              onChange={handleColsChange}
-              className="w-64 accent-blue-300"
-            />
-          </div>
-          {/* Number of mountain tiles control */}
-          <div className="flex flex-col items-center">
-            <label className="mb-1 text-xl font-extrabold">Mountain Tiles: {numMtnTiles}</label>
-            <input
-              type="range"
-              min="0"
-              max={rows * cols - 1}
-              value={numMtnTiles}
-              onChange={handleMtnTilesChange}
-              className="w-64 accent-gray-400"
-            />
-          </div>
-        </div>
+        { gridControlsDisplay() }
 
         {/* Grid visualization */}
         <div className="flex flex-col items-center mt-4">
@@ -287,46 +356,15 @@ export default function FloodFill() {
               })}
             </div>
           ))}
+
+          <div className='pt-2'>
+            { buttonGroupDisplay() }
+          </div>
         </div>
 
         <div className="flex flex-col items-left ml-32">
           { queueStackDisplay() }
         </div>
-      </div>
-
-      {/* Control buttons */}
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <button
-          onClick={handleDefaultReset}
-          className="bg-transparent text-white px-4 py-2 rounded border-2 border-gray-500 hover:border-white"
-        >
-          Reset
-        </button>
-
-        {!isInitialized && (
-          <button
-            onClick={handleInitialize}
-            disabled={isInitialized || selectedTile.row === null || selectedTile.col === null}
-            className={`px-4 py-2 w-36 rounded 
-                        ${floodFillState !== null || isInitialized || selectedTile.row === null || selectedTile.col === null ? 
-                        'bg-gray-500 text-white cursor-not-allowed opacity-50' : 
-                        'bg-transparent text-white border-2 border-yellow-700 hover:border-yellow-500'}`}
-          >
-            Start
-          </button>
-        )}
-        {isInitialized && (
-          <button
-            onClick={handleStep}
-            disabled={isComplete}
-            className={`px-4 py-2 w-36 rounded 
-                        ${isComplete || floodFillState === null ? 
-                        'bg-gray-500 text-white cursor-not-allowed opacity-50' : 
-                        'bg-transparent text-white border-2 border-blue-800 hover:border-blue-500'}`}
-          >
-            {algorithm === "BFS" ? 'Shift' : 'Pop'}
-          </button>
-        )}
       </div>
     </div>
   );
